@@ -15,34 +15,10 @@ variable "cluster_name" {
   description = "Cluster name to create"
 }
 
-variable "ingress_top_domain" {
+variable "ingress_domain" {
   type        = string
-  description = "Ingress top level Domain Name"
-  default = ""
-}
-
-variable "cloudflare_api_token" {
-  type        = string
-  sensitive   = true
-  description = "Cloudflare API Token for let's encrypt"
-  default = ""
-}
-
-variable "rancher_internal_fqdn" {
-  type        = string
-  description = "Rancher self-aware FQDN - for dual ingress"
+  description = "Ingress domain name suffix"
   default     = ""
-}
-
-variable "harvester_network_name" {
-  type        = string
-  description = "Harvester network name to use for VM"
-}
-
-variable "acme_wildcard" {
-  type        = bool
-  description = "Should we create an ACME Let's encrypt wildcard certificate"
-  default     = false
 }
 
 variable "container_registry_mirror" {
@@ -74,6 +50,16 @@ variable "harvester_network_namespace" {
   description = "Harvester VM network namespace"
 }
 
+variable "harvester_network_name" {
+  type        = string
+  description = "Harvester network name to use for VM"
+}
+
+variable "harvester_project_name" {
+  type        = string
+  description = "Harvester operating project name"
+}
+
 variable "harvester_namespace" {
   type        = string
   description = "Harvester operating namespace"
@@ -82,36 +68,18 @@ variable "harvester_namespace" {
 variable "harvester_image_name" {
   type        = string
   description = "Harvester cloud image name"
-  default     = "ubuntu18.04"
-}
-
-variable "acme_prod" {
-  type        = bool
-  default     = false
-  description = "Should a ACME production env cert be requested"
-}
-
-variable "acme_email" {
-  type        = string
-  description = "ACME email"
-  default = ""
 }
 
 variable "kubernetes_version" {
   type        = string
   description = "Cluster's Kubernetes version"
-  default     = "v1.26.11+rke2r1"
-}
-
-variable "harvester_api" {
-  type        = string
-  description = "Harvester API endpoint URL"
+  default     = "v1.34.2+rke2r1"
 }
 
 variable "harvester_image_namespace" {
   type        = string
   default     = "harvester-public"
-  description = "Where the VM cloud image would be get from"
+  description = "Where the VM cloud image would be used from"
 }
 
 variable "rancher_url" {
@@ -135,22 +103,16 @@ variable "node_pools" {
   description = "Node pools attributes"
 }
 
-variable "ingress_subdomain" {
-  type        = string
-  description = "Ingress subdomain before the root domain"
-  default = ""
+variable "test_ingress" {
+  type        = bool
+  description = "Deploy demo app with ingress"
+  default     = false
 }
 
 variable "proxy_host" {
   type        = string
   description = "Proxy host with port"
   default     = ""
-}
-
-variable "cert_manager_version" {
-  type        = string
-  default     = "v1.13.2"
-  description = "Cert-Manager chart version"
 }
 
 variable "root_ca_cert_path" {

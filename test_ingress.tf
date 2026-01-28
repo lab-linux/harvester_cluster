@@ -1,5 +1,5 @@
 resource "kubectl_manifest" "ingress_test_deploy" {
-  count = var.acme_wildcard ? 1 : 0
+  count = var.test_ingress ? 1 : 0
 
   yaml_body = <<-YAML
     apiVersion: apps/v1
@@ -26,7 +26,7 @@ resource "kubectl_manifest" "ingress_test_deploy" {
 }
 
 resource "kubectl_manifest" "ingress_test_svc" {
-  count = var.acme_wildcard ? 1 : 0
+  count = var.test_ingress ? 1 : 0
 
   yaml_body = <<-YAML
     apiVersion: v1
@@ -44,7 +44,7 @@ resource "kubectl_manifest" "ingress_test_svc" {
 }
 
 resource "kubectl_manifest" "ingress_test_ingress" {
-  count = var.acme_wildcard ? 1 : 0
+  count = var.test_ingress ? 1 : 0
 
   yaml_body = <<-YAML
     apiVersion: networking.k8s.io/v1
@@ -57,7 +57,7 @@ resource "kubectl_manifest" "ingress_test_ingress" {
     spec:
       ingressClassName: nginx
       rules:
-      - host: "httpbin.${var.cluster_name}.${var.ingress_subdomain}.${var.ingress_top_domain}"
+      - host: "test.${var.ingress_domain}"
         http:
           paths:
           - path: /
@@ -69,6 +69,6 @@ resource "kubectl_manifest" "ingress_test_ingress" {
                   number: 80
       tls:
       - hosts:
-          - "httpbin.${var.cluster_name}.${var.ingress_subdomain}.${var.ingress_top_domain}"
+          - "test.${var.ingress_domain}"
   YAML
 }

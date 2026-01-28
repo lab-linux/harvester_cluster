@@ -6,6 +6,12 @@ packages:
  - ntp
  - qemu-guest-agent
 
+runcmd:
+  - - systemctl
+    - enable
+    - --now
+    - qemu-guest-agent.service
+    
 users:
   - name: ${prov_user}
     sudo: ALL=(ALL) NOPASSWD:ALL

@@ -1,36 +1,25 @@
-data "rancher2_cluster_v2" "harvester" {
-  name            = var.harvester_cluster_name
-  fleet_namespace = "fleet-default"
+data "rancher2_cluster" "harvester" {
+  name = var.harvester_cluster_name
 }
 
 resource "rancher2_cloud_credential" "harvester" {
-  name = "${data.rancher2_cluster_v2.harvester.name}-${split(":", var.rancher_token)[0]}"
+  name = "${data.rancher2_cluster.harvester.name}-${split(":", var.rancher_token)[0]}"
   harvester_credential_config {
-    cluster_id         = data.rancher2_cluster_v2.harvester.cluster_v1_id
+    cluster_id         = data.rancher2_cluster.harvester.id
     cluster_type       = "imported"
-    kubeconfig_content = data.rancher2_cluster_v2.harvester.kube_config
+    kubeconfig_content = data.rancher2_cluster.harvester.kube_config
   }
 
   lifecycle {
     ignore_changes = [harvester_credential_config]
   }
-
-  # Old method, see next resource
-  # provisioner "local-exec" {
-  #   command = <<-EOT
-  #     curl -k -X POST ${var.rancher_url}/k8s/clusters/${data.rancher2_cluster_v2.harvester.cluster_v1_id}/v1/harvester/kubeconfig \
-  #       -H 'Content-Type: application/json' \
-  #       -u ${var.rancher_token} \
-  #       -d '{"clusterRoleName": "harvesterhci.io:cloudprovider", "namespace": "${var.harvester_namespace}", "serviceAccountName": "'${var.cluster_name}'"}' | xargs | sed 's/\\n/\n/g' > ${var.cluster_name}-kubeconfig
-  #     sleep 45s
-  #   EOT
-  # }
 }
 
+# Fix for getting machine selector secret
 data "http" "harvester-kubeconfig" {
   depends_on = [rancher2_cloud_credential.harvester]
 
-  url    = "${var.rancher_url}/k8s/clusters/${data.rancher2_cluster_v2.harvester.cluster_v1_id}/v1/harvester/kubeconfig"
+  url    = "${var.rancher_url}/k8s/clusters/${data.rancher2_cluster.harvester.id}/v1/harvester/kubeconfig"
   method = "POST"
 
   request_headers = {
@@ -52,32 +41,43 @@ data "http" "harvester-kubeconfig" {
   }
 }
 
+data "rancher2_project" "this" {
+  cluster_id = data.rancher2_cluster.harvester.id
+  name       = var.harvester_project_name
+}
+
+resource "rancher2_namespace" "this" {
+  name       = var.harvester_namespace
+  project_id = data.rancher2_project.this.id
+}
+
 resource "rancher2_machine_config_v2" "this" {
   for_each = var.node_pools
 
   generate_name = "${var.cluster_name}-harvester-${each.key}"
 
   harvester_config {
-    vm_namespace = var.harvester_namespace
-    cpu_count    = each.value.cpu_count
-    memory_size  = each.value.memory_size
-    disk_info    = <<-EOF
+    vm_namespace         = rancher2_namespace.this.name
+    cpu_count            = each.value.cpu_count
+    memory_size          = each.value.memory_size
+    reserved_memory_size = "-1"
+    disk_info            = <<-EOF
       {
           "disks": [{
-              "imageName": "${var.harvester_image_namespace}/${var.harvester_image_name}",
+              "imageName": "${var.harvester_image_namespace}/${each.value.image_name}",
               "size": ${each.value.os_disk_size},
               "bootOrder": 1
           }]
       }
     EOF
-    network_info = <<-EOF
+    network_info         = <<-EOF
       {
           "interfaces": [{
               "networkName": "${var.harvester_network_namespace}/${var.harvester_network_name}"
           }]
       }
     EOF
-    ssh_user     = var.prov_user
+    ssh_user             = var.prov_user
     user_data = base64encode(templatefile(var.vm_user_data_tmpl_file, {
       prov_user             = var.prov_user
       prov_user_ssh_pub_key = file(pathexpand(var.prov_user_ssh_pub_key))
@@ -100,11 +100,12 @@ resource "rancher2_cluster_v2" "this" {
       for_each = var.node_pools
 
       content {
-        name               = machine_pools.key
-        control_plane_role = contains(machine_pools.value.roles, "controlplane")
-        etcd_role          = contains(machine_pools.value.roles, "etcd")
-        worker_role        = contains(machine_pools.value.roles, "worker")
-        quantity           = machine_pools.value.count
+        name                = machine_pools.key
+        drain_before_delete = true
+        control_plane_role  = contains(machine_pools.value.roles, "controlplane")
+        etcd_role           = contains(machine_pools.value.roles, "etcd")
+        worker_role         = contains(machine_pools.value.roles, "worker")
+        quantity            = machine_pools.value.count
         machine_config {
           kind = rancher2_machine_config_v2.this[machine_pools.key].kind
           name = rancher2_machine_config_v2.this[machine_pools.key].name
@@ -119,20 +120,14 @@ resource "rancher2_cluster_v2" "this" {
         global:
           cattle:
             clusterName: ${var.cluster_name}
-      rke2-canal: {}
-      harvester-csi-driver:
-        replicasCount: 1
+      rke2-calico: {}
       rke2-ingress-nginx:
         controller:
           ingressClassResource:
             default: true
-          extraArgs:
-            ${var.acme_wildcard ? "default-ssl-certificate: cert-manager/wildcard-tls-secret" : ""}
           service:
             enabled: true
             type: LoadBalancer
-            annotations:
-              ${indent(8, local.harv_lb_annotations)}
     EOT
 
     machine_selector_config {
@@ -144,7 +139,7 @@ resource "rancher2_cluster_v2" "this" {
     }
 
     machine_global_config = <<-EOF
-      cni: "canal"
+      cni: calico
       disable-kube-proxy: false
       etcd-expose-metrics: false
     EOF
