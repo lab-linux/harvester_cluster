@@ -57,7 +57,7 @@ resource "kubectl_manifest" "ingress_test_ingress" {
     spec:
       ingressClassName: nginx
       rules:
-      - host: "test.${var.ingress_domain}"
+      - host: "${var.ingress_prefix}.${var.ingress_domain}"
         http:
           paths:
           - path: /
@@ -69,6 +69,6 @@ resource "kubectl_manifest" "ingress_test_ingress" {
                   number: 80
       tls:
       - hosts:
-          - "test.${var.ingress_domain}"
+          - "${var.ingress_prefix}.${var.ingress_domain}"
   YAML
 }

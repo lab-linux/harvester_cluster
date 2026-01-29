@@ -21,6 +21,12 @@ variable "ingress_domain" {
   default     = ""
 }
 
+variable "ingress_prefix" {
+  type        = string
+  description = "Ingress prefix"
+  default     = "test"
+}
+
 variable "container_registry_mirror" {
   type        = string
   description = "Container registry mirror"
@@ -63,11 +69,6 @@ variable "harvester_project_name" {
 variable "harvester_namespace" {
   type        = string
   description = "Harvester operating namespace"
-}
-
-variable "harvester_image_name" {
-  type        = string
-  description = "Harvester cloud image name"
 }
 
 variable "kubernetes_version" {

@@ -4,8 +4,8 @@ rancher_url = "https://rancher.lab-linux.com"
 # Harvester options
 harvester_cluster_name      = "lab01"
 harvester_namespace         = "test"
-harvester_project_name      = "test"
-harvester_network_namespace = "test-shared"
+harvester_project_name      = "gologic"
+harvester_network_namespace = "gologic-shared"
 harvester_network_name      = "shared"
 
 # Cluster options
@@ -22,7 +22,8 @@ node_pools = {
 }
 
 test_ingress   = false
-ingress_domain = "lab-linux.com"
+ingress_prefix = "test"
+ingress_domain = "go.lab-linux.com"
 
 # Specific hosting env options
 root_ca_cert_path         = "files/private_ca.crt" #Useful for mirror below
